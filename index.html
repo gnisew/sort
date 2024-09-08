@@ -383,6 +383,8 @@ const questionData = `
 濟州島	這是世界上最好吃的豬肉之一。	It's some of the best pork in the world.	en
 `;
 
+// 英語句子也可用{ } 框住表示要在同一單位;
+
 const containerHTML = `
 <div id="settingsInterface" class="container">
   <h1>🥷烏衣行句子重組</h1>
@@ -575,18 +577,70 @@ function filterQuestionsByCategory(category) {
 
 
 function splitWords(sortable) {
-  // 檢查是否包含空格
-  if (sortable.includes(' ')) {
-    return sortable.split(' ');
+  let words;
+
+  // 檢查是否包含 {}
+  if (sortable.includes('{')) {
+    const regex = /\{[^}]+\}|[^ ]+/g;
+    words = sortable.match(regex);
+    words = words.map(word => word.replace(/^\{|\}$/g, '').trim());
+  } else if (sortable.includes(' ')) {
+    words = sortable.split(' ');
+  } else if (sortable.includes('-') || sortable.includes('--')) {
+    words = sortable.split(/--|-/).filter(word => word !== '');
+  } else {
+    words = splitWord(sortable);
   }
+
+  const originalLength = words.length;
   
-  // 檢查是否包含連字符（單個或雙個）
-  if (sortable.includes('-') || sortable.includes('--')) {
-    return sortable.split(/--|-/).filter(word => word !== '');
+  // 如果單詞數量超過7個，進行合併
+  if (originalLength > 7) {
+    const maxWordsPerUnit = originalLength >= 14 ? 3 : 2;
+    const targetLength = Math.min(7, Math.ceil(originalLength / maxWordsPerUnit));
+    
+    while (words.length > targetLength) {
+      let mergedIndices = new Set();
+      
+      while (words.length > targetLength && mergedIndices.size < words.length - 1) {
+        const availableIndices = words.length - 1 - mergedIndices.size;
+        const randomOffset = Math.floor(Math.random() * availableIndices);
+        let indexToMerge = -1;
+        
+        for (let i = 0; i < words.length - 1; i++) {
+          if (!mergedIndices.has(i)) {
+            indexToMerge++;
+            if (indexToMerge === randomOffset) {
+              indexToMerge = i;
+              break;
+            }
+          }
+        }
+        
+        const currentUnitWords = words[indexToMerge].split(' ').length;
+        if (currentUnitWords < maxWordsPerUnit) {
+          words[indexToMerge] = words[indexToMerge] + ' ' + words[indexToMerge + 1];
+          words.splice(indexToMerge + 1, 1);
+          mergedIndices.add(indexToMerge);
+        }
+      }
+      
+      if (words.length > targetLength && mergedIndices.size === words.length - 1) {
+        break;
+      }
+    }
   }
-  
-  // 如果不包含空格和連字符，使用 splitWord 函數
-  return splitWord(sortable);
+
+  return words;
+}
+
+
+function shuffleArray(array) {
+  for (let i = array.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [array[i], array[j]] = [array[j], array[i]];
+  }
+  return array;
 }
 
 
@@ -826,11 +880,8 @@ function colorizeEnglishWord(word) {
 
 // 檢查是否正確
 function check() {
-  console.log(selectedWords.join(""))
-  console.log(currentQuestion.sortable.replace(/[ -]+/g, ""))
-  
-  const isCorrect = selectedWords.join("") === currentQuestion.sortable.replace(/[ -]+/g, "");
-  console.log(isCorrect)
+  const isCorrect = selectedWords.join("").replace(/[ -]+/g, "") === currentQuestion.sortable.replace(/[ -]+/g, "");
+
   if (isCorrect) {
 	rightSound.play();
     updateCharacter(['🥰', '😛', '🤗', '😄', '😍', '🤩', '😘', '😚', '😋', '😊', '😆', '😁', '😄', '😃'][Math.floor(Math.random() * 14)]);
