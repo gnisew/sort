@@ -592,42 +592,33 @@ function splitWords(sortable) {
     words = splitWord(sortable);
   }
 
-  const originalLength = words.length;
-  
   // 如果單詞數量超過7個，進行合併
-  if (originalLength > 7) {
-    const maxWordsPerUnit = originalLength >= 14 ? 3 : 2;
-    const targetLength = Math.min(7, Math.ceil(originalLength / maxWordsPerUnit));
+  if (words.length > 7) {
+    // 計算需要合併的次數
+    const mergeTimes = words.length - 7;
     
-    while (words.length > targetLength) {
-      let mergedIndices = new Set();
-      
-      while (words.length > targetLength && mergedIndices.size < words.length - 1) {
-        const availableIndices = words.length - 1 - mergedIndices.size;
-        const randomOffset = Math.floor(Math.random() * availableIndices);
-        let indexToMerge = -1;
-        
-        for (let i = 0; i < words.length - 1; i++) {
-          if (!mergedIndices.has(i)) {
-            indexToMerge++;
-            if (indexToMerge === randomOffset) {
-              indexToMerge = i;
-              break;
-            }
-          }
-        }
-        
-        const currentUnitWords = words[indexToMerge].split(' ').length;
-        if (currentUnitWords < maxWordsPerUnit) {
-          words[indexToMerge] = words[indexToMerge] + ' ' + words[indexToMerge + 1];
-          words.splice(indexToMerge + 1, 1);
-          mergedIndices.add(indexToMerge);
+    // 創建一個數組來追踪哪些索引已經被合併過
+    let mergedIndices = new Set();
+    
+    for (let i = 0; i < mergeTimes; i++) {
+      // 找出所有可以合併的索引
+      let availableIndices = [];
+      for (let j = 0; j < words.length - 1; j++) {
+        if (!mergedIndices.has(j) && !mergedIndices.has(j+1) && words[j].split(' ').length + words[j+1].split(' ').length <= 2) {
+          availableIndices.push(j);
         }
       }
       
-      if (words.length > targetLength && mergedIndices.size === words.length - 1) {
-        break;
-      }
+      // 如果沒有可合併的索引，跳出循環
+      if (availableIndices.length === 0) break;
+      
+      // 隨機選擇一個索引進行合併
+      const randomIndex = availableIndices[Math.floor(Math.random() * availableIndices.length)];
+      
+      // 合併選中的索引
+      words[randomIndex] = words[randomIndex] + ' ' + words[randomIndex + 1];
+      words.splice(randomIndex + 1, 1);
+      mergedIndices.add(randomIndex);
     }
   }
 
